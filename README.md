@@ -284,6 +284,3 @@ fs.writeFileSync("qr.svg", svg);
 
 Chrome, Firefox, Safari, Edge, Opera — all modern browsers. IE11 compatible (core generation).
 
-## License
-
-MIT
