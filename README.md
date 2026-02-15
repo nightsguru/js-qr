@@ -5,12 +5,13 @@ Lightweight, zero-dependency JavaScript library for QR code generation. Works in
 ## Features
 
 - **Zero dependencies** — pure JavaScript, no build tools required
+- **6 module styles** — square, dots, rounded, diamond, star, liquid
+- **Center logo embedding** — place any image in the QR center with automatic zone clearing
+- **Gradient fill** — linear gradient across modules with configurable angle
 - **Multiple rendering modes** — SVG, Canvas, Data URL, HTML Table
-- **Visual styles** — square modules, rounded dots
 - **Full QR specification** — versions 1-40, error correction L/M/Q/H
 - **Encoding modes** — Numeric, Alphanumeric, Byte (UTF-8)
 - **UMD module** — works with `<script>`, CommonJS, AMD
-- **Customizable** — colors, sizes, margins, dot scale
 
 ## Quick Start
 
@@ -57,16 +58,76 @@ var qr = JSQR.generate(data, options);
 
 ### Options
 
-| Option       | Type   | Default     | Description                        |
-| ------------ | ------ | ----------- | ---------------------------------- |
-| `ecLevel`    | String | `"M"`       | Error correction: `L`, `M`, `Q`, `H` |
-| `moduleSize` | Number | `10`        | Size of each module in pixels      |
-| `margin`     | Number | `4`         | Quiet zone margin in modules       |
-| `foreground` | String | `"#000000"` | Module color                       |
-| `background` | String | `"#FFFFFF"` | Background color                   |
-| `style`      | String | `"square"`  | Module style: `square` or `dots`   |
+| Option       | Type   | Default     | Description                            |
+| ------------ | ------ | ----------- | -------------------------------------- |
+| `ecLevel`    | String | `"M"`       | Error correction: `L`, `M`, `Q`, `H`  |
+| `moduleSize` | Number | `10`        | Size of each module in pixels          |
+| `margin`     | Number | `4`         | Quiet zone margin in modules           |
+| `foreground` | String | `"#000000"` | Module color                           |
+| `background` | String | `"#FFFFFF"` | Background color                       |
+| `style`      | String | `"square"`  | Module style (see below)               |
 | `dotScale`   | Number | `0.85`      | Dot size ratio (only for `dots` style) |
-| `borderRadius` | Number | `0`       | SVG background border radius       |
+| `borderRadius` | Number | `0`       | SVG background border radius           |
+| `logo`       | Object | `null`      | Center logo configuration (see below)  |
+| `gradient`   | Object | `null`      | Gradient fill configuration (see below)|
+
+### Module Styles
+
+| Style      | Description                                                     |
+| ---------- | --------------------------------------------------------------- |
+| `square`   | Classic square modules                                          |
+| `dots`     | Circular dots with configurable `dotScale`                      |
+| `rounded`  | Squares with rounded corners (35% radius)                       |
+| `diamond`  | Rotated diamond/rhombus shapes                                  |
+| `star`     | 5-pointed star shapes                                           |
+| `liquid`   | Organic blob shapes — neighbors merge smoothly via adaptive radii |
+
+```js
+JSQR("Hello", { style: "liquid" }).appendTo("#container");
+```
+
+### Logo Configuration
+
+Place an image in the center of the QR code. The library automatically clears the center zone of modules and overlays the logo with a padded background. Use error correction `Q` or `H` for best results with logos.
+
+```js
+JSQR("Hello", {
+  ecLevel: "H",
+  logo: {
+    src: "logo.png",
+    size: 0.2,
+    padding: 6,
+    borderRadius: 8,
+    background: "#FFFFFF"
+  }
+}).appendTo("#container");
+```
+
+| Logo Option      | Type   | Default     | Description                        |
+| ---------------- | ------ | ----------- | ---------------------------------- |
+| `src`            | String | —           | Image URL or data URI (required)   |
+| `size`           | Number | `0.2`       | Logo size as ratio of QR total size (0.0–0.3) |
+| `padding`        | Number | `4`         | Padding around logo in pixels      |
+| `borderRadius`   | Number | `4`         | Corner radius of logo background   |
+| `background`     | String | `"#FFFFFF"` | Background color behind logo       |
+
+### Gradient Configuration
+
+Apply a linear gradient across all modules instead of a solid foreground color.
+
+```js
+JSQR("Hello", {
+  gradient: {
+    colors: ["#7c3aed", "#06b6d4"],
+    angle: 135
+  }
+}).appendTo("#container");
+```
+
+| Gradient Option | Type   | Default          | Description                      |
+| --------------- | ------ | ---------------- | -------------------------------- |
+| `colors`        | Array  | `[foreground]`   | Array of color stops             |
+| `angle`         | Number | `0`              | Gradient angle in degrees        |
 
 ### Instance Methods
 
@@ -79,7 +140,7 @@ document.getElementById("container").innerHTML = svg;
 ```
 
 #### `toCanvas(canvasElement, options?)`
-Renders QR code onto a canvas element.
+Renders QR code onto a canvas element. Logo is drawn asynchronously on canvas.
 
 ```js
 var canvas = document.getElementById("my-canvas");
@@ -135,14 +196,22 @@ JSQR.toCanvas("data", canvasElement, options);
 | `data`        | String | Original input data         |
 | `matrix`      | Object | Internal matrix object      |
 
+### Static Properties
+
+| Property       | Type   | Description                                    |
+| -------------- | ------ | ---------------------------------------------- |
+| `JSQR.version` | String | Library version                                |
+| `JSQR.STYLES`  | Array  | Available styles list                          |
+| `JSQR.ECL`     | Object | Error correction level constants               |
+
 ## Error Correction Levels
 
 | Level | Recovery | Use Case                          |
 | ----- | -------- | --------------------------------- |
 | L     | ~7%      | Maximum data capacity             |
 | M     | ~15%     | General purpose (default)         |
-| Q     | ~25%     | Industrial / outdoor environments |
-| H     | ~30%     | High reliability, logos overlay   |
+| Q     | ~25%     | With small logos                   |
+| H     | ~30%     | With large logos, high reliability |
 
 ## Examples
 
@@ -155,13 +224,31 @@ JSQR("Hello", {
 }).appendTo("#container");
 ```
 
-### Dot Style
+### Liquid Style with Gradient
 
 ```js
 JSQR("Hello", {
-  style: "dots",
-  dotScale: 0.75,
-  foreground: "#059669"
+  style: "liquid",
+  gradient: {
+    colors: ["#ec4899", "#8b5cf6", "#06b6d4"],
+    angle: 45
+  }
+}).appendTo("#container");
+```
+
+### Logo with High EC
+
+```js
+JSQR("https://mysite.com", {
+  ecLevel: "H",
+  style: "rounded",
+  logo: {
+    src: "brand-logo.png",
+    size: 0.22,
+    padding: 8,
+    borderRadius: 12,
+    background: "#ffffff"
+  }
 }).appendTo("#container");
 ```
 
@@ -185,13 +272,17 @@ canvas.toBlob(function (blob) {
 const JSQR = require("./jsqr");
 const fs = require("fs");
 
-var svg = JSQR.toSVG("https://example.com", { moduleSize: 4 });
+var svg = JSQR.toSVG("https://example.com", {
+  moduleSize: 4,
+  style: "rounded",
+  gradient: { colors: ["#000", "#333"], angle: 90 }
+});
 fs.writeFileSync("qr.svg", svg);
 ```
 
 ## Browser Support
 
-Chrome, Firefox, Safari, Edge, Opera — all modern browsers. IE11 compatible.
+Chrome, Firefox, Safari, Edge, Opera — all modern browsers. IE11 compatible (core generation).
 
 ## License
 
